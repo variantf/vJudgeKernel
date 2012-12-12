@@ -168,7 +168,8 @@ void MAIN::WaitThreadpool(PVOID hIOCP){
 					MAIN *Work = new MAIN(Msg->Client);
 					Work->Start();
 					delete Work;
-				}
+				}else
+					closesocket(Msg->Client);
 			}
 			delete[] Msg->pBuf->buf;
 			delete Msg->pBuf;
