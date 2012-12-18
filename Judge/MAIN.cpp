@@ -9,9 +9,9 @@ MAIN::MAIN(SOCKET _Client)
 	DWORD nNetTimeout=5000;
 	//…Ë÷√∑¢ÀÕ≥¨ ±
 	if(0 != setsockopt(sockConn,SOL_SOCKET,SO_SNDTIMEO,(char*)&nNetTimeout,sizeof(int)))
-		throw;
+		throw runtime_error("set network send timeout error");
 	if(0 != setsockopt(sockConn,SOL_SOCKET,SO_RCVTIMEO,(char*)&nNetTimeout,sizeof(int)))
-		throw;
+		throw runtime_error("set network recv timeout error");
 	Log = new REPORT_MESSAGE();
 }
 
