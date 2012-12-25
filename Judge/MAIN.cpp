@@ -1,5 +1,6 @@
 #include "StdAfx.h"
 #include "MAIN.h"
+#include "DELETE_TEMP.h"
 
 LONGLONG MAIN::SecurityCode = 0;
 
@@ -39,6 +40,8 @@ void MAIN::Start(){
 		}
 	}
 	//unlock
+	DELETE_TEMP Delete;
+	Delete.Start();
 	LeaveCriticalSection(&cs);
 }
 

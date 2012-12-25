@@ -50,6 +50,7 @@ int InitSrv::LoadConfig(){
 			return false;
 		if(!SetCurrentDirectoryW(wTempPath))
 			return false;
+		/*
 		DELETE_TEMP *Delete = new DELETE_TEMP();
 		PTP_TIMER pTimer = CreateThreadpoolTimer(TimeoutCallback<DELETE_TEMP>,(PVOID)Delete,NULL);
 		if(NULL == pTimer)
@@ -58,6 +59,7 @@ int InitSrv::LoadConfig(){
 		start.dwHighDateTime = -1;
 		start.dwLowDateTime  = -1;
 		SetThreadpoolTimer(pTimer,&start,60000,0);
+		*/
 
 		RUN::environment.Add(L"Temp",wstring(wTempPath));
 		RUN::environment.Add(L"Tmp",wstring(wTempPath));

@@ -53,6 +53,7 @@ DWORD dwRet;
     EXPLICIT_ACCESSW ea; 
     HKEY hKey = NULL; 
 
+
 	WCHAR* Username = GetWideChar(UsernameA.c_str());
 
     // 获取SAM主键的DACL 
