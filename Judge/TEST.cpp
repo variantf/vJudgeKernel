@@ -28,12 +28,13 @@ DWORD TEST::GetStaticMemory(const WCHAR* path){
 }
 
 int TEST::Test_Single(const char *path,const char *compare,DWORD Time,DWORD Memory,
-		long long* rTime,long long* uMemory,HANDLE hIn,HANDLE hOut,HANDLE hRes){
+					  long long* rTime,long long* uMemory,MyHandle &hIn,MyHandle &hOut,MyHandle &hRes,
+						wstring inputFile,wstring outputFile){
 	DWORD exitcode = TERROR;
 	BOOL isTLE;
 	int result = TERROR;
 	wstring TmpOutFile;
-	MyHandle hTmp = GetTempFile(TmpOutFile);
+	MyHandle hTmp = GetTempFile(TmpOutFile,0);
 	if(INVALID_HANDLE_VALUE == hTmp){
 		throw runtime_error("GetTempFile");
 		assert(false);
@@ -66,15 +67,14 @@ int TEST::Test_Single(const char *path,const char *compare,DWORD Time,DWORD Memo
 			if(!SetHandleInformation(hOut,HANDLE_FLAG_INHERIT,HANDLE_FLAG_INHERIT))
 				throw runtime_error("SetHandleInherit");
 			LONGLONG rTime,uMemory;
-			string cmp = string(compare).append(" ").append(to_string((long long)hOut)).append(" ");
-			cmp.append(to_string((long long)(HANDLE)hTmp)).append(" ");
-			cmp.append(to_string((long long)hIn));
-			WCHAR * wcmp = GetWideChar(cmp.c_str());
-			DWORD dbgmsg;
-			GetHandleInformation(hOut,&dbgmsg);
-			GetHandleInformation(hTmp,&dbgmsg);
-			GetHandleInformation(hIn,&dbgmsg);
-			isTLE = Run->Run_Binary(wcmp,Time,Memory,NULL,hRes,hRes,1,&rTime,&uMemory,TRUE,&exitcode);
+			WCHAR * wcmp = GetWideChar(compare);
+			wstring cmp = wstring(wcmp).append(L" ").append(outputFile).append(L" ");
+			cmp.append(TmpOutFile).append(L" ");
+			cmp.append(inputFile);
+			hIn.~MyHandle();
+			hOut.~MyHandle();
+			hTmp.~MyHandle();
+			isTLE = Run->Run_Binary((WCHAR*)cmp.c_str(),Time,Memory,NULL,hRes,hRes,1,&rTime,&uMemory,TRUE,&exitcode);
 			delete[] wcmp;
 			if((exitcode != ACCEPT && exitcode != WRONG_ANSWER && exitcode != Output_Limit_Execeeded) || isTLE)
 				result = CMP_ERROR;

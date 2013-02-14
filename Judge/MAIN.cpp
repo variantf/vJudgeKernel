@@ -75,8 +75,8 @@ MAIN::Out* MAIN::work(MESSAGE* In){
 				sa.bInheritHandle=TRUE;
 				sa.lpSecurityDescriptor=NULL;
 				sa.nLength=sizeof(sa);
-				MyHandle hIn = GetTempFile(TmpIn);
-				MyHandle hOut = GetTempFile(TmpOut);
+				MyHandle hIn = GetTempFile(TmpIn,0);
+				MyHandle hOut = GetTempFile(TmpOut,0);
 				MyHandle hRes = GetTempFile(TmpFile);
 				DWORD written;
 				WriteFile(hIn,test->char_data+test->offIn,test->offOut-test->offIn,&written,NULL);
@@ -100,7 +100,7 @@ MAIN::Out* MAIN::work(MESSAGE* In){
 					assert(false);
 				}
 				TEST *Test = new TEST();
-				out->ErrCode = Test->Test_Single(test->char_data+test->offBin,test->char_data+test->offCmp,(DWORD)test->Time,(DWORD)test->Memory,&out->rTime,&out->uMemory,hIn,hOut,hRes);
+				out->ErrCode = Test->Test_Single(test->char_data+test->offBin,test->char_data+test->offCmp,(DWORD)test->Time,(DWORD)test->Memory,&out->rTime,&out->uMemory,hIn,hOut,hRes,TmpIn,TmpOut);
 				Read(hRes,out->Msg,&out->MsgLen);
 				out->rTime/=10000;
 				delete[] test;
