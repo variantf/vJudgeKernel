@@ -53,13 +53,6 @@ HANDLE GetTempFile(wstring& FileName,BOOL Delete,const WCHAR * suffix){
 
 }
 
-void Read(HANDLE hFile,char* buffer,unsigned int* buf_read){
-	if(INVALID_SET_FILE_POINTER == SetFilePointer(hFile,0,NULL,FILE_BEGIN))
-		throw runtime_error("SetFilePointer");
-	if(!ReadFile(hFile,buffer,10 * 1024,(PDWORD)buf_read,NULL))
-		throw runtime_error("ReadFile");
-}
-
 
 WCHAR* GetWideChar(const char * str){
 		DWORD len=strlen(str);
