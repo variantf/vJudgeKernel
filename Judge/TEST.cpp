@@ -50,7 +50,7 @@ int TEST::Test_Single(const char *path,const char *compare,DWORD Time,DWORD Memo
 		throw runtime_error("SetHandleInherit 0");
 	RUN *Run = new RUN();
 	if(*compare)
-		isTLE = Run->Run_Binary(cmd,Time,Memory,hIn,hTmp,INVALID_HANDLE_VALUE,1,rTime,uMemory,TRUE,&exitcode);
+		isTLE = Run->Run_Binary(cmd,Time,Memory,hIn,hTmp,NULL,1,rTime,uMemory,TRUE,&exitcode);
 	else
 		isTLE = Run->Run_Binary(cmd,Time,Memory,hIn,hRes,hRes,1,rTime,uMemory,TRUE,&exitcode);
 	delete[] cmd;

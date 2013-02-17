@@ -189,9 +189,9 @@ void MAIN::ReadResFile(HANDLE hFile,Out **out) {
 	if(INVALID_FILE_SIZE==fsize)
 		throw runtime_error("GetFileSize");
 	Out *new_out=new Out[sizeof(Out)+fsize];
-	memcpy(new_out,out,sizeof(Out));
+	memcpy(new_out,*out,sizeof(Out));
 	new_out->MsgLen=fsize;
-	if(!ReadFile(hFile,new_out->Msg,fsize,(PDWORD)new_out->Msg,NULL))
+	if(!ReadFile(hFile,new_out->Msg,fsize,(PDWORD)&new_out->MsgLen,NULL))
 		throw runtime_error("ReadFile");
 	delete *out;
 	*out=new_out;
