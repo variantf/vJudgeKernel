@@ -62,7 +62,7 @@ int COMPILE::Compile(const char *char_data,HANDLE hOut,DWORD Time,DWORD Memory,u
 
 	DWORD ext;
 	RUN *Run = new RUN();
-	BOOL isTLE = Run->Run_Binary((WCHAR*)cmd.c_str(),Time,Memory,NULL,hOut,hOut,10,&t,&m,FALSE,&ext);
+	BOOL isTLE = Run->Run_Binary((WCHAR*)cmd.c_str(),Time,Memory,NULL,hOut,hOut,10,&t,&m,FALSE,NULL,&ext);
 	delete Run;
 	int result = UNDEFINE_ERROR;
 	if(ext == 0 && (!isTLE)){

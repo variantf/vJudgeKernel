@@ -60,9 +60,15 @@ VOID RUN::SetLimit(HANDLE hJob,DWORD Time,size_t Memory,int NumberOfProcess){
 		throw runtime_error("SetInformationJobObject");
 		assert(false);
 	}
+
+	JOBOBJECT_ASSOCIATE_COMPLETION_PORT iocp;
+	iocp.CompletionKey=this;
+	iocp.CompletionPort=InitSrv::jobIocp;
+	if(!SetInformationJobObject(hJob,JobObjectAssociateCompletionPortInformation,&iocp,sizeof(iocp)))
+		throw runtime_error("SetInformationJobObject iocp");
 }
 
-VOID RUN::CreatePro(WCHAR* cmd,HANDLE hIn,HANDLE hOut,HANDLE hErr,BOOL AsUser,PPROCESS_INFORMATION pi){
+VOID RUN::CreatePro(WCHAR* cmd,HANDLE hIn,HANDLE hOut,HANDLE hErr,BOOL AsUser,WCHAR* Directory, PPROCESS_INFORMATION pi){
 	STARTUPINFOW si;
 	memset(&si,0,sizeof(si));
 	si.cb=sizeof(si);
@@ -85,14 +91,14 @@ VOID RUN::CreatePro(WCHAR* cmd,HANDLE hIn,HANDLE hOut,HANDLE hErr,BOOL AsUser,PP
 		DEBUG_ONLY_THIS_PROCESS, 
 		// creation flags
 		environment,       // pointer to new environment block 
-		NULL,              // name of current directory 
+		Directory,              // name of current directory 
 		&si,               // pointer to STARTUPINFO structure
 		pi                 // receives information about new process
 		))
 		throw runtime_error("CreateProcessAsUser");
 }
 
-BOOL RUN::Run_Binary(WCHAR* cmd,DWORD Time,size_t Memory,HANDLE hIn,HANDLE hOut,HANDLE hErr,DWORD NumberOfProcess,PLONGLONG rTime,PLONGLONG uMemory,BOOL AsUser,PDWORD ExitCode){
+BOOL RUN::Run_Binary(WCHAR* cmd,DWORD Time,size_t Memory,HANDLE hIn,HANDLE hOut,HANDLE hErr,DWORD NumberOfProcess,PLONGLONG rTime,PLONGLONG uMemory,BOOL AsUser,WCHAR* Directory,PDWORD ExitCode){
 
 	//Create the Job
 	MyHandle hJob=CreateJobObject(NULL,NULL);
@@ -104,7 +110,7 @@ BOOL RUN::Run_Binary(WCHAR* cmd,DWORD Time,size_t Memory,HANDLE hIn,HANDLE hOut,
 	SetLimit(hJob,Time,Memory,NumberOfProcess);
 
 	PROCESS_INFORMATION pi;
-	CreatePro(cmd,hIn,hOut,hErr,AsUser,&pi);
+	CreatePro(cmd,hIn,hOut,hErr,AsUser,Directory,&pi);
 
 	MyHandle hProcess(pi.hProcess);
 	MyHandle hThread(pi.hThread);
@@ -164,6 +170,7 @@ RUN::RUN(){
 		CpuMask = AffinityOwn;
 	}
 	memset(h,0,sizeof(h));
+	isMLE=false;
 }
 
 VOID RUN::dealException(EXCEPTION_RECORD *rec,LPDWORD Exitcode){

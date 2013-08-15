@@ -1,6 +1,7 @@
 #include "StdAfx.h"
 #include "MAIN.h"
 #include "DELETE_TEMP.h"
+#include "InitSrv.h"
 
 LONGLONG MAIN::SecurityCode = 0;
 
@@ -26,11 +27,21 @@ MAIN::~MAIN(void)
 void MAIN::Start(){
 	try{
 		//lock
-		EnterCriticalSection(&cs);
-		while(MESSAGE *Data = getmessage()){
-			Out* rData = work(Data);
-			sendback(rData,sizeof(Out)+rData->MsgLen-1);
-			delete[] Data;
+		//EnterCriticalSection(&cs);
+		//while(MESSAGE *Data = getmessage()){
+		while(map<string,wstring> *Data=getmessage()){
+			RUNNER_OUT* rData;
+			try{
+				 rData = work(Data);
+			}catch(runtime_error e){
+				stringstream ss;
+				ss<<e.what()<<"  "<<GetLastError();
+				rData=(RUNNER_OUT*)new BYTE[ss.str().length()+4];
+				rData->sz=ss.str().length();
+				strcpy(rData->DATA,ss.str().c_str());
+			}
+			sendback(rData,sizeof(RUNNER_OUT)+rData->sz-1);
+			delete Data;
 			delete[] rData;
 		}
 	}
@@ -40,17 +51,67 @@ void MAIN::Start(){
 		}
 	}
 	//unlock
-	DELETE_TEMP Delete;
-	Delete.Start();
-	LeaveCriticalSection(&cs);
+	//DELETE_TEMP Delete;
+	//Delete.Start();
+	//LeaveCriticalSection(&cs);
 }
 
-MAIN::Out* MAIN::work(MESSAGE* In){
+MAIN::RUNNER_OUT* MAIN::work(map<string,wstring>* In){
+	SECURITY_ATTRIBUTES sa;
+	sa.bInheritHandle=TRUE;
+	sa.lpSecurityDescriptor=NULL;
+	sa.nLength=sizeof(sa);
+
+	MyHandle hIn=CreateFile((*In)["standard-in"].c_str(),GENERIC_READ,
+		FILE_SHARE_READ|FILE_SHARE_WRITE,&sa,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
+	if(INVALID_HANDLE_VALUE == hIn)
+		throw runtime_error("CreateFile stdin");
+	MyHandle hOut=CreateFile((*In)["standard-out"].c_str(),GENERIC_WRITE,
+		FILE_SHARE_READ|FILE_SHARE_WRITE,&sa,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
+	if(INVALID_HANDLE_VALUE == hOut)
+		throw runtime_error("CreateFile stdout");
+	MyHandle hErr=CreateFile((*In)["standard-err"].c_str(),GENERIC_WRITE,
+		FILE_SHARE_READ|FILE_SHARE_WRITE,&sa,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
+	if(INVALID_HANDLE_VALUE == hErr)
+		throw runtime_error("CreateFile stderr");
+	RUN r;
+	DWORD time_lim,exit;
+	size_t memory_lim;
+	LONGLONG uMemory,rTime;
+	wstringstream ss((*In)["memory-limit"]+TEXT("  ")+(*In)["time-limit"]);
+	ss>>memory_lim>>time_lim;
+	BOOL isTLE;
+	if((*In)["restriction-level"]==TEXT("loose")){
+		isTLE=r.Run_Binary((WCHAR*)(*In)["command"].c_str(),time_lim,memory_lim,hIn,hOut,hErr,10,
+			&rTime,&uMemory,TRUE,(WCHAR*)(*In)["working-directory"].c_str(),&exit);
+	}else{
+		isTLE=r.Run_Binary((WCHAR*)(*In)["command"].c_str(),time_lim,memory_lim,hIn,hOut,hErr,1,
+			&rTime,&uMemory,TRUE,(WCHAR*)(*In)["working-directory"].c_str(),&exit);
+	}
+	stringstream rets;
+	rets<<"exit-code:"<<exit<<"\ntime:"<<rTime/10000<<"\nmemory:"<<uMemory<<"\ntype:";
+	if(isTLE){
+		rets<<"TLE\n";
+	}else if(memory_lim<uMemory || r.isMLE ){
+		rets<<"MLE\n";
+	}else if(exit!=0){
+		rets<<"FAILURE\n";
+	}else{
+		rets<<"SUCCESS\n";
+	}
+	RUNNER_OUT *ret=(RUNNER_OUT*)new BYTE[4+rets.str().length()];
+	ret->sz=rets.str().length();
+	strcpy(ret->DATA,rets.str().c_str());
+	return ret;
+}
+/*
+MAIN::Out* MAIN::work(map<string,string>* In){
 	wstring TmpFile;
 	wstring TmpIn;
 	wstring TmpOut;
 	Out* out=(Out*)new BYTE[sizeof(Out)+MAX_MSG_LEN];
 	memset(out,0,sizeof(Out)+MAX_MSG_LEN);
+
 	try{
 		switch(In->Mid){
 		case M_COMPILE:
@@ -100,7 +161,7 @@ MAIN::Out* MAIN::work(MESSAGE* In){
 					assert(false);
 				}
 				TEST *Test = new TEST();
-				out->ErrCode = Test->Test_Single(test->char_data+test->offBin,test->char_data+test->offCmp,(DWORD)test->Time,(DWORD)test->Memory,&out->rTime,&out->uMemory,hIn,hOut,hRes);
+				out->ErrCode = Test->Test_Single(test->char_data+test->offBin,test->char_data+test->offCmp,(DWORD)test->Time,(DWORD)test->Memory,&out->rTime,&out->uMemory,hIn,hOut,hRes,TmpIn,TmpOut);
 				Read(hRes,out->Msg,&out->MsgLen);
 				out->rTime/=10000;
 				delete[] test;
@@ -115,6 +176,7 @@ MAIN::Out* MAIN::work(MESSAGE* In){
 	}
 	return out;
 }
+*/
 
 void MAIN::readdata(void* buf,int sz){
 	char* ptr=(char*)buf,*ed=(char*)buf+sz;
@@ -126,11 +188,18 @@ void MAIN::readdata(void* buf,int sz){
 			throw runtime_error("Network Disconnected");
 		ptr+=recved;
 	}
+	/*
 	SYSTEMTIME t;
 	GetLocalTime(&t);
-	printf("%d-%d-%d %d:%d:%d Read byte(s) %d\n",t.wYear,t.wMonth,t.wDay,t.wHour,t.wMinute,t.wSecond,sz);
+	FILE *flog = fopen("C:\\log.txt","a");
+	fprintf(flog,"%d-%d-%d %d:%d:%d Read byte(s) %d\n",t.wYear,t.wMonth,t.wDay,t.wHour,t.wMinute,t.wSecond,sz);
+	fwrite(buf,sz,1,flog);
+	fputs("",flog);
+	fclose(flog);
+	*/
 }
 
+/*
 MAIN::MESSAGE* MAIN::getmessage(){
 	int DataHead[2];
 	readdata((char*)DataHead,8);
@@ -140,7 +209,37 @@ MAIN::MESSAGE* MAIN::getmessage(){
 	readdata((char*)buffer->DATA,buffer->Datasize);
 	return buffer;
 }
-
+*/
+map<string,wstring>* MAIN::getmessage(){
+	int len;
+	readdata((char*)&len,4);
+	//4 bytes for length and last one for \0
+	RUNNER* buffer = (RUNNER*)new BYTE[len+5];
+	memset(buffer,0,len+5);
+	buffer->Datasize=len;
+	readdata((char*)buffer->DATA,len);
+	stringstream stm(buffer->DATA);
+	string line;
+	map<string,wstring> *ret=new map<string,wstring>();
+	while(getline(stm,line)){
+		string::size_type pos = line.find(':');
+		if(pos==string::npos)
+			throw runtime_error("Bad Config");
+		WCHAR* buf=GetWideChar(line.substr(pos+1,line.length()-pos-1).c_str());
+		(*ret)[line.substr(0,pos)]=buf;
+		delete[] buf;
+	}
+	if((*ret)["standard-in"][0]=='.' && (*ret)["standard-in"][1]=='/')
+		(*ret)["standard-in"]=(*ret)["working-directory"]+(*ret)["standard-in"].substr(2,(*ret)["standard-in"].length()-2);
+	if((*ret)["standard-out"][0]=='.' && (*ret)["standard-out"][1]=='/')
+		(*ret)["standard-out"]=(*ret)["working-directory"]+(*ret)["standard-out"].substr(2,(*ret)["standard-out"].length()-2);
+	if((*ret)["standard-err"][0]=='.' && (*ret)["standard-err"][1]=='/')
+		(*ret)["standard-err"]=(*ret)["working-directory"]+(*ret)["standard-err"].substr(2,(*ret)["standard-err"].length()-2);
+	wstring cmd=(*ret)["command"];
+	if(cmd[0]=='.'&&cmd[1]=='/')
+		(*ret)["command"]=(*ret)["working-directory"]+cmd.substr(2,cmd.length()-2);
+	return ret;
+}
 void MAIN::sendback(void *Data,int sz){
 	char *ptr=(char*)Data,*ed=(char*)Data+sz;
 	while(ptr<ed){
@@ -168,7 +267,7 @@ void MAIN::WaitThreadpool(PVOID hIOCP){
 				LONGLONG Password;
 				memcpy(&Password,Msg->pBuf->buf,sizeof(LONGLONG));
 				if(Password == SecurityCode){
-					MAIN *Work = new MAIN(Msg->Client);
+					MAIN* Work = new MAIN(Msg->Client);
 					Work->Start();
 					delete Work;
 				}else
@@ -178,6 +277,19 @@ void MAIN::WaitThreadpool(PVOID hIOCP){
 			delete Msg->pBuf;
 			delete Msg;
 			delete Overlapped;
+		}
+	}
+}
+
+void MAIN::JobMessage(PVOID){
+	DWORD type;
+	LPOVERLAPPED overlape;
+	RUN* ptr;
+	while(TRUE){
+		if(GetQueuedCompletionStatus(InitSrv::jobIocp,&type,(PULONG_PTR)&ptr,&overlape,INFINITE)){
+			if(type==JOB_OBJECT_MSG_PROCESS_MEMORY_LIMIT || type==JOB_OBJECT_MSG_JOB_MEMORY_LIMIT){
+				ptr->isMLE=true;
+			}
 		}
 	}
 }

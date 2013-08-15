@@ -28,7 +28,8 @@ DWORD TEST::GetStaticMemory(const WCHAR* path){
 }
 
 int TEST::Test_Single(const char *path,const char *compare,DWORD Time,DWORD Memory,
-		long long* rTime,long long* uMemory,HANDLE hIn,HANDLE hOut,HANDLE hRes){
+		long long* rTime,long long* uMemory,HANDLE hIn,HANDLE hOut,HANDLE hRes,
+		wstring inputFile,wstring outputFile){
 	DWORD exitcode = TERROR;
 	BOOL isTLE;
 	int result = TERROR;
@@ -49,9 +50,9 @@ int TEST::Test_Single(const char *path,const char *compare,DWORD Time,DWORD Memo
 		throw runtime_error("SetHandleInherit 0");
 	RUN *Run = new RUN();
 	if(*compare)
-		isTLE = Run->Run_Binary(cmd,Time,Memory,hIn,hTmp,hRes,1,rTime,uMemory,TRUE,&exitcode);
+		isTLE = Run->Run_Binary(cmd,Time,Memory,hIn,hTmp,hRes,1,rTime,uMemory,TRUE,NULL,&exitcode);
 	else
-		isTLE = Run->Run_Binary(cmd,Time,Memory,hIn,hRes,hRes,1,rTime,uMemory,TRUE,&exitcode);
+		isTLE = Run->Run_Binary(cmd,Time,Memory,hIn,hRes,hRes,1,rTime,uMemory,TRUE,NULL,&exitcode);
 	delete[] cmd;
 	if(isTLE)
 		result = Time_Limit_Exceeded;
@@ -66,15 +67,11 @@ int TEST::Test_Single(const char *path,const char *compare,DWORD Time,DWORD Memo
 			if(!SetHandleInformation(hOut,HANDLE_FLAG_INHERIT,HANDLE_FLAG_INHERIT))
 				throw runtime_error("SetHandleInherit");
 			LONGLONG rTime,uMemory;
-			string cmp = string(compare).append(" ").append(to_string((long long)hOut)).append(" ");
-			cmp.append(to_string((long long)(HANDLE)hTmp)).append(" ");
-			cmp.append(to_string((long long)hIn));
-			WCHAR * wcmp = GetWideChar(cmp.c_str());
-			DWORD dbgmsg;
-			GetHandleInformation(hOut,&dbgmsg);
-			GetHandleInformation(hTmp,&dbgmsg);
-			GetHandleInformation(hIn,&dbgmsg);
-			isTLE = Run->Run_Binary(wcmp,Time,Memory,NULL,hRes,hRes,1,&rTime,&uMemory,TRUE,&exitcode);
+			WCHAR * wcmp = GetWideChar(compare);
+			wstring cmp = wstring(wcmp).append(L" ").append(outputFile).append(L" ");
+			cmp.append(TmpOutFile).append(L" ");
+			cmp.append(inputFile);
+			isTLE = Run->Run_Binary(wcmp,Time,Memory,NULL,hRes,hRes,1,&rTime,&uMemory,TRUE,NULL,&exitcode);
 			delete[] wcmp;
 			if((exitcode != ACCEPT && exitcode != WRONG_ANSWER && exitcode != Output_Limit_Execeeded) || isTLE)
 				result = CMP_ERROR;

@@ -31,7 +31,7 @@ NETWORK::NETWORK(void)
 		throw runtime_error("CreateIoCompletionPort");
     SYSTEM_INFO SystemInfo; 
     GetSystemInfo(&SystemInfo); 
-    for(unsigned int i=0; i<SystemInfo.dwNumberOfProcessors*2; i++) 
+    for(unsigned int i=0; i<1/*SystemInfo.dwNumberOfProcessors*2*/; i++) 
     { 
             HANDLE ThreadHandle; 
 			DWORD ThreadID;

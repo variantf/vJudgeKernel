@@ -9,4 +9,5 @@ namespace InitSrv{
 	int UnSafeInit(WCHAR* Username,WCHAR* Password);
 	int LoadConfig();
 	int InitSrv();
+	extern HANDLE jobIocp;
 };

@@ -21,6 +21,16 @@ private:
 		unsigned char DATA[1];
 	};
 
+	struct RUNNER{
+		unsigned int Datasize;
+		char DATA[1];
+	};
+
+	struct RUNNER_OUT{
+		unsigned int sz;
+		char DATA[1];
+	};
+
 	//接收的编译信息结构
 	struct COMPILE_IN{
 		//编译限制时间
@@ -66,13 +76,13 @@ private:
 	};
 
 	//测评工作核心
-	Out* work(MESSAGE* In);
+	RUNNER_OUT* work(map<string,wstring>* In);
 
 	//获得指定size的数据
 	void readdata(void* buf,int sz);
 
 	//取得测评信息
-	MESSAGE* getmessage();
+	map<string,wstring>* getmessage();
 
 	//发送指定size的数据
 	void sendback(void *Data,int sz);
@@ -82,6 +92,7 @@ private:
 public:
 	static long long SecurityCode;
 	static void WaitThreadpool(PVOID);
+	static void JobMessage(PVOID);
 	MAIN(SOCKET _Client);
 	~MAIN(void);
 	void Start();

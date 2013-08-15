@@ -1,5 +1,8 @@
 #include "stdafx.h"
 #include "InitSrv.h"
+#include "Main.h"
+
+HANDLE InitSrv::jobIocp;
 
 int InitSrv::InitSrv(){
 	try{
@@ -8,9 +11,13 @@ int InitSrv::InitSrv(){
 		InitializeCriticalSection(&cs);
 		NETWORK *Network = new NETWORK();
 		DWORD tid;
-		MyHandle hThread;
-		if(NULL == (hThread = CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)StartNewThread<NETWORK>,(PVOID)Network,0,&tid)))
+		MyHandle hThreadNet,hThreadIocp;
+		if(NULL == (hThreadNet = CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)StartNewThread<NETWORK>,(PVOID)Network,0,&tid)))
 			throw runtime_error("CreateThread Failed");
+		if(NULL==(jobIocp=CreateIoCompletionPort(INVALID_HANDLE_VALUE,NULL,0,0)))
+			throw runtime_error("CreateIOCompletionPort Jobobject");
+		if(NULL == (hThreadIocp = CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)MAIN::JobMessage,NULL,0,&tid)))
+			throw runtime_error("CreateThread JobMessage");
 	}
 	catch(...){
 		return FALSE;
@@ -20,6 +27,7 @@ int InitSrv::InitSrv(){
 
 int InitSrv::LoadConfig(){
 	HKEY hKey;
+	Sleep(10000);
 	if(ERROR_SUCCESS != RegOpenKeyW(HKEY_LOCAL_MACHINE,L"SYSTEM\\CurrentControlSet\\Services\\v-Judge_Kernel",&hKey))
 		return false;
 	try{
