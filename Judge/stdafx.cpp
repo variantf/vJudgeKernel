@@ -49,15 +49,8 @@ HANDLE GetTempFile(wstring& FileName,BOOL Delete,const WCHAR * suffix){
 	sa.bInheritHandle=TRUE;
 	sa.lpSecurityDescriptor=NULL;
 	sa.nLength=sizeof(sa);
-	return CreateFileW(FileName.c_str(),GENERIC_WRITE|GENERIC_READ,0,&sa,CREATE_ALWAYS,FILE_ATTRIBUTE_TEMPORARY|((Delete)?FILE_FLAG_DELETE_ON_CLOSE:0),NULL);
+	return CreateFileW(FileName.c_str(),GENERIC_WRITE|GENERIC_READ,FILE_SHARE_READ,&sa,CREATE_ALWAYS,FILE_ATTRIBUTE_TEMPORARY|((Delete)?FILE_FLAG_DELETE_ON_CLOSE:0),NULL);
 
-}
-
-void Read(HANDLE hFile,char* buffer,unsigned int* buf_read){
-	if(INVALID_SET_FILE_POINTER == SetFilePointer(hFile,0,NULL,FILE_BEGIN))
-		throw runtime_error("SetFilePointer");
-	if(!ReadFile(hFile,buffer,10 * 1024,(PDWORD)buf_read,NULL))
-		throw runtime_error("ReadFile");
 }
 
 

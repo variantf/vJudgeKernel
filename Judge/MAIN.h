@@ -89,6 +89,8 @@ private:
 
 	REPORT_MESSAGE *Log;
 
+	void ReadResFile(HANDLE ,Out **);
+
 public:
 	static long long SecurityCode;
 	static void WaitThreadpool(PVOID);

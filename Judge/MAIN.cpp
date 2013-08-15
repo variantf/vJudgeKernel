@@ -109,8 +109,8 @@ MAIN::Out* MAIN::work(map<string,string>* In){
 	wstring TmpFile;
 	wstring TmpIn;
 	wstring TmpOut;
-	Out* out=(Out*)new BYTE[sizeof(Out)+MAX_MSG_LEN];
-	memset(out,0,sizeof(Out)+MAX_MSG_LEN);
+	Out* out=(Out*)new BYTE[sizeof(Out)];
+	memset(out,0,sizeof(Out));
 
 	try{
 		switch(In->Mid){
@@ -123,7 +123,7 @@ MAIN::Out* MAIN::work(map<string,string>* In){
 					throw runtime_error("TmpFile");
 				COMPILE *Compile=new COMPILE();
 				out->ErrCode = Compile->Compile(compile->cmd,hOut,(DWORD)compile->Time,(DWORD)compile->Memory,compile->Codelen);
-				Read(hOut,out->Msg,&out->MsgLen);
+				ReadResFile(hOut,&out);
 				delete[] compile;
 				delete Compile;
 			}
@@ -136,8 +136,8 @@ MAIN::Out* MAIN::work(map<string,string>* In){
 				sa.bInheritHandle=TRUE;
 				sa.lpSecurityDescriptor=NULL;
 				sa.nLength=sizeof(sa);
-				MyHandle hIn = GetTempFile(TmpIn);
-				MyHandle hOut = GetTempFile(TmpOut);
+				MyHandle hIn = GetTempFile(TmpIn,0);
+				MyHandle hOut = GetTempFile(TmpOut,0);
 				MyHandle hRes = GetTempFile(TmpFile);
 				DWORD written;
 				WriteFile(hIn,test->char_data+test->offIn,test->offOut-test->offIn,&written,NULL);
@@ -162,7 +162,7 @@ MAIN::Out* MAIN::work(map<string,string>* In){
 				}
 				TEST *Test = new TEST();
 				out->ErrCode = Test->Test_Single(test->char_data+test->offBin,test->char_data+test->offCmp,(DWORD)test->Time,(DWORD)test->Memory,&out->rTime,&out->uMemory,hIn,hOut,hRes,TmpIn,TmpOut);
-				Read(hRes,out->Msg,&out->MsgLen);
+				ReadResFile(hRes,&out);
 				out->rTime/=10000;
 				delete[] test;
 				delete Test;
@@ -292,4 +292,19 @@ void MAIN::JobMessage(PVOID){
 			}
 		}
 	}
+}
+
+void MAIN::ReadResFile(HANDLE hFile,Out **out) {
+	if(INVALID_SET_FILE_POINTER == SetFilePointer(hFile,0,NULL,FILE_BEGIN))
+		throw runtime_error("SetFilePointer");
+	DWORD fsize=GetFileSize(hFile,NULL);
+	if(INVALID_FILE_SIZE==fsize)
+		throw runtime_error("GetFileSize");
+	Out *new_out=new Out[sizeof(Out)+fsize];
+	memcpy(new_out,*out,sizeof(Out));
+	new_out->MsgLen=fsize;
+	if(!ReadFile(hFile,new_out->Msg,fsize,(PDWORD)&new_out->MsgLen,NULL))
+		throw runtime_error("ReadFile");
+	delete *out;
+	*out=new_out;
 }
